@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useAppData from '../hooks/useAppData';
-import { updateDonorStatus } from '../services/mockApi';
+import { updateDonorStatus, fetchTransfers } from '../services/mockApi';
 
 const Donate = () => {
   const { session, setInventory } = useAppData();
@@ -9,6 +9,13 @@ const Donate = () => {
     emergencyContact: session?.emergencyContact || false
   });
   const [submitError, setSubmitError] = useState('');
+  const [transfers, setTransfers] = useState([]);
+
+  useEffect(() => {
+    if (session?.id) {
+      fetchTransfers(session.id).then(setTransfers).catch(console.error);
+    }
+  }, [session?.id]);
 
   useEffect(() => {
     setDonationForm({
@@ -181,6 +188,36 @@ const Donate = () => {
               </div>
             )}
           </form>
+        </div>
+
+        <div className="panel" style={{ marginTop: '1.5rem' }}>
+          <div className="panel__header">
+            <div>
+              <p className="eyebrow">My Transfers</p>
+              <h3>Hospitals requesting your blood</h3>
+              <p className="hint">These hospitals have claimed your donation. Please coordinate with them.</p>
+            </div>
+            <div className="pill pill--warning" style={{ color: '#d97706', borderColor: '#fcd34d', backgroundColor: '#fef3c7' }}>Action Required</div>
+          </div>
+          <div className="inventory-list">
+            {transfers.filter(tx => tx.status === 'In Progress').map((tx) => (
+              <div key={tx._id} className="inventory-row">
+                <div className="pill pill--ghost">{tx.donorId?.bloodGroup || '?'}</div>
+                <div className="inventory-row__meta">
+                  <h4>{tx.hospitalId?.organization || tx.hospitalId?.name || 'Verified Hospital'}</h4>
+                  <p className="hint">
+                    {tx.hospitalId?.city || 'No city'} · {tx.status}
+                  </p>
+                </div>
+                <div className="inventory-row__contact">
+                  <p className="inventory-row__contact-label">Contact</p>
+                  <p>{tx.hospitalId?.email || 'On file'}</p>
+                  <p className="hint">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            ))}
+            {!transfers.filter(tx => tx.status === 'In Progress').length && <p className="hint">No hospitals have requested your blood yet.</p>}
+          </div>
         </div>
       </section>
     </main>

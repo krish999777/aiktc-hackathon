@@ -482,6 +482,40 @@ app.post('/api/inventory/consume', async (req, res) => {
   }
 });
 
+app.get('/api/transfers/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const transfers = await BloodTransfer.find({
+      $or: [{ donorId: userId }, { hospitalId: userId }]
+    })
+    .populate('donorId', 'name email bloodGroup city')
+    .populate('hospitalId', 'organization name email city')
+    .sort({ createdAt: -1 });
+    
+    res.json({ transfers });
+  } catch (err) {
+    console.error('Transfers fetch error:', err);
+    res.status(500).json({ message: 'Error fetching transfers' });
+  }
+});
+
+app.patch('/api/transfers/:id/complete', async (req, res) => {
+  try {
+    const transfer = await BloodTransfer.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Completed' },
+      { returnDocument: 'after' }
+    );
+    if (!transfer) {
+      return res.status(404).json({ message: 'Transfer not found.' });
+    }
+    res.json({ transfer, message: 'Transfer marked as completed.' });
+  } catch (err) {
+    console.error('Complete transfer error:', err);
+    res.status(500).json({ message: 'Error completing transfer' });
+  }
+});
+
 app.listen(PORT, HOST, () => {
   console.log(`API running at http://${HOST}:${PORT}`);
 });

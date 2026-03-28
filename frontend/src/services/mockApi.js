@@ -209,3 +209,19 @@ export const findHospitalsByType = (neededType) => {
     hospital.readyTypes?.some((type) => isCompatible(type, neededType)),
   );
 };
+
+export const fetchTransfers = async (userId) => {
+  if (!userId) return [];
+  const res = await fetch(`${API_BASE}/transfers/${userId}`);
+  if (!res.ok) throw new Error('Failed to fetch transfers');
+  const data = await res.json();
+  return data.transfers || [];
+};
+
+export const completeTransfer = async (transferId) => {
+  const res = await fetch(`${API_BASE}/transfers/${transferId}/complete`, {
+    method: 'PATCH',
+  });
+  if (!res.ok) throw new Error('Failed to complete transfer');
+  return res.json();
+};

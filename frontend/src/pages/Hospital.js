@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import useAppData from '../hooks/useAppData';
-import { addRequest, consumeDonation } from '../services/mockApi';
+import { addRequest, consumeDonation, fetchTransfers, completeTransfer } from '../services/mockApi';
 
 const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
@@ -28,6 +28,13 @@ const Hospital = () => {
     contact: '',
   });
   const [useHospitalLocation, setUseHospitalLocation] = useState(false);
+  const [transfers, setTransfers] = useState([]);
+
+  useEffect(() => {
+    if (session?.id) {
+      fetchTransfers(session.id).then(setTransfers).catch(console.error);
+    }
+  }, [session?.id]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -84,6 +91,9 @@ const Hospital = () => {
     try {
       const result = await consumeDonation(id, session.id);
       setInventory(result.inventory || []);
+      // Refresh the transfers list
+      const updatedTransfers = await fetchTransfers(session.id);
+      setTransfers(updatedTransfers);
       if (result.emailSent) {
         window.alert(`Email sent to ${result.donorName} at ${result.donorEmail}.`);
       } else if (result.emailError) {
@@ -343,38 +353,46 @@ const Hospital = () => {
           </div>
         </div>
 
-        {/* <div className="panel">
+        <div className="panel">
           <div className="panel__header">
             <div>
-              <p className="eyebrow">Hospital directory</p>
-              <h3>Access partner hospital data</h3>
-              <p className="hint">View bank partners and reach verified hospital teams.</p>
+              <p className="eyebrow">Active Transfers</p>
+              <h3>Donors you have requested</h3>
+              <p className="hint">Track the blood units you have claimed from individual donors.</p>
             </div>
+            <div className="pill pill--warning" style={{ color: '#d97706', borderColor: '#fcd34d', backgroundColor: '#fef3c7' }}>In Progress</div>
           </div>
           <div className="inventory-list">
-            {filteredHospitals.map((hospital) => {
-              const dist = distanceKm(getCoordsForCity(hospital.city));
-              return (
-                <div key={hospital.id} className="inventory-row">
-                  <div className="pill pill--ghost">{hospital.city}</div>
-                  <div className="inventory-row__meta">
-                    <h4>{hospital.name}</h4>
-                    <p className="hint">
-                      Bank partner: {hospital.bankPartner} · Ready types: {hospital.readyTypes.join(', ')}
-                    </p>
-                  </div>
-                  <div className="inventory-row__contact">
-                    <p className="inventory-row__contact-label">Contact</p>
-                    <p>{hospital.contact}</p>
-                    <p className="hint">{hospital.email}</p>
-                    {dist ? <p className="hint">~{dist} km away</p> : null}
-                  </div>
+            {transfers.filter(tx => tx.status === 'In Progress').map((tx) => (
+              <div key={tx._id} className="inventory-row">
+                <div className="pill pill--ghost">{tx.donorId?.bloodGroup || '?'}</div>
+                <div className="inventory-row__meta">
+                  <h4>{tx.donorId?.name || 'Anonymous Donor'}</h4>
+                  <p className="hint">
+                    {tx.donorId?.city || 'No city'} · {tx.status}
+                  </p>
                 </div>
-              );
-            })}
-            {!filteredHospitals.length && <p className="hint">No hospitals match these filters.</p>}
+                <div className="inventory-row__contact">
+                  <p className="inventory-row__contact-label">Contact</p>
+                  <p>{tx.donorId?.email || 'On file'}</p>
+                  <p className="hint">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                </div>
+                <button className="btn btn--primary" style={{ padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={async () => {
+                  try {
+                    await completeTransfer(tx._id);
+                    const updated = await fetchTransfers(session.id);
+                    setTransfers(updated);
+                  } catch (err) {
+                    console.error('Failed to complete transfer:', err);
+                  }
+                }}>
+                  Mark Completed
+                </button>
+              </div>
+            ))}
+            {!transfers.filter(tx => tx.status === 'In Progress').length && <p className="hint">No active transfers yet. Click "Take units" above to claim a donor.</p>}
           </div>
-        </div> */}
+        </div>
       </section>
     </main>
   );
