@@ -6,6 +6,7 @@ export default function useAppData() {
   const [inventory, setInventory] = useState([]);
   const [requests, setRequests] = useState([]);
   const [hospitals, setHospitals] = useState([]);
+  const [activeTransfers, setActiveTransfers] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -14,6 +15,7 @@ export default function useAppData() {
         setInventory(remote.inventory || []);
         setRequests(remote.requests || []);
         setHospitals(remote.hospitals || getHospitals());
+        setActiveTransfers(remote.activeTransfers || 0);
         return;
       }
       const seeded = bootstrapStore();
@@ -35,6 +37,7 @@ export default function useAppData() {
     inventory,
     requests,
     hospitals,
+    activeTransfers,
     setInventory,
     setRequests,
   };

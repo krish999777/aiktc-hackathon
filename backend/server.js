@@ -261,7 +261,8 @@ app.get('/api/state', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    res.json({ inventory, requests, hospitals: [] });
+    const activeTransfers = await BloodTransfer.countDocuments({ status: 'In Progress' });
+    res.json({ inventory, requests, hospitals: [], activeTransfers });
   } catch (err) {
     console.error('State error:', err);
     res.status(500).json({ message: 'Database connection error' });
@@ -312,30 +313,24 @@ app.post('/api/requests', async (req, res) => {
   try {
     const request = {
       bloodType: req.body.bloodType,
-      units: Number(req.body.units || 0),
-      city: req.body.city || '',
+      units: 1,
+      city: '',
       urgency: req.body.urgency || 'Critical',
       clinicalReason: req.body.clinicalReason || '',
       requestedBy: req.body.requestedBy || 'Hospital',
       contact: req.body.contact || '',
     };
 
-    if (!request.bloodType || request.units < 1) {
-      return res.status(400).json({ message: 'Blood type and units are required.' });
+    if (!request.bloodType) {
+      return res.status(400).json({ message: 'Blood type is required.' });
     }
 
-    const candidateDonors = await User.find({
+    // Find all emergency donors with the exact same blood group
+    const matches = await User.find({
       role: 'Individual donor',
-      isReadyToDonate: true,
       emergencyContact: true,
+      bloodGroup: request.bloodType,
       email: { $exists: true, $ne: '' },
-    });
-
-    const matches = candidateDonors.filter((donor) => {
-      const bloodMatch = isCompatible(donor.bloodGroup, request.bloodType);
-      if (!bloodMatch) return false;
-      if (!request.city) return true;
-      return donor.city?.toLowerCase() === request.city.toLowerCase();
     });
 
     const savedRequest = await EmergencyRequest.create({

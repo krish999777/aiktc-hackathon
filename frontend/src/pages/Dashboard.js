@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import useAppData from '../hooks/useAppData';
 
 const Dashboard = () => {
-  const { session, inventory, requests, hospitals } = useAppData();
+  const { session, inventory, requests, hospitals, activeTransfers } = useAppData();
 
   const totalUnits = useMemo(
     () => inventory.reduce((sum, item) => sum + Number(item.units || 0), 0),
@@ -65,8 +65,8 @@ const Dashboard = () => {
           </div>
           <div className="stat">
             <p className="stat__label">Active requests</p>
-            <p className="stat__value">{requests.length}</p>
-            <p className="stat__hint">Hospitals and individuals</p>
+            <p className="stat__value">{activeTransfers}</p>
+            <p className="stat__hint">Blood transfers in progress</p>
           </div>
           <div className="stat">
             <p className="stat__label">Hospitals loaded</p>

@@ -22,10 +22,7 @@ const Hospital = () => {
   const [alertResult, setAlertResult] = useState(null);
   const [emergencyForm, setEmergencyForm] = useState({
     bloodType: 'O+',
-    units: 2,
-    city: '',
     clinicalReason: 'Emergency need',
-    contact: '',
   });
   const [useHospitalLocation, setUseHospitalLocation] = useState(false);
   const [transfers, setTransfers] = useState([]);
@@ -112,12 +109,10 @@ const Hospital = () => {
       const result = await addRequest(
         {
           bloodType: emergencyForm.bloodType,
-          units: emergencyForm.units,
-          city: emergencyForm.city || session?.organization || '',
           urgency: 'Critical',
           clinicalReason: emergencyForm.clinicalReason || 'Emergency alert',
           requestedBy: session?.organization || session?.name || 'Hospital',
-          contact: emergencyForm.contact || session?.email || 'On file',
+          contact: session?.email || 'On file',
         },
         session,
       );
@@ -179,7 +174,7 @@ const Hospital = () => {
           <form className="form" onSubmit={handleEmergencyAlert}>
             <div className="form__row">
               <label>
-                Needed type
+                Needed blood group
                 <select
                   value={emergencyForm.bloodType}
                   onChange={(e) => setEmergencyForm({ ...emergencyForm, bloodType: e.target.value })}
@@ -188,38 +183,6 @@ const Hospital = () => {
                     <option key={type}>{type}</option>
                   ))}
                 </select>
-              </label>
-              <label>
-                Units needed
-                <input
-                  type="number"
-                  min="1"
-                  value={emergencyForm.units}
-                  onChange={(e) =>
-                    setEmergencyForm({ ...emergencyForm, units: Number(e.target.value || 0) })
-                  }
-                  required
-                />
-              </label>
-            </div>
-            <div className="form__row">
-              <label>
-                City (optional)
-                <input
-                  type="text"
-                  placeholder="e.g., Pune"
-                  value={emergencyForm.city}
-                  onChange={(e) => setEmergencyForm({ ...emergencyForm, city: e.target.value })}
-                />
-              </label>
-              <label>
-                Contact for callbacks
-                <input
-                  type="text"
-                  placeholder="Phone / email"
-                  value={emergencyForm.contact}
-                  onChange={(e) => setEmergencyForm({ ...emergencyForm, contact: e.target.value })}
-                />
               </label>
             </div>
             <label>
