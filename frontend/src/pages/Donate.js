@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useAppData from '../hooks/useAppData';
-import { updateDonorStatus, fetchTransfers } from '../services/mockApi';
+import { updateDonorStatus, fetchTransfers, rejectTransfer } from '../services/mockApi';
 
 const Donate = () => {
   const { session, setInventory } = useAppData();
@@ -10,6 +10,27 @@ const Donate = () => {
   });
   const [submitError, setSubmitError] = useState('');
   const [transfers, setTransfers] = useState([]);
+
+  // Refresh session from backend so toggle reflects actual DB state
+  useEffect(() => {
+    if (!session?.id) return;
+    const API_BASE = process.env.REACT_APP_API_BASE || '/api';
+    fetch(`${API_BASE}/user/${session.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.user) {
+          const updated = { ...session, ...data.user };
+          localStorage.setItem('lifeline-blood-center-session', JSON.stringify(updated));
+          window.dispatchEvent(new Event('storage'));
+          setDonationForm({
+            isReadyToDonate: updated.isReadyToDonate || false,
+            emergencyContact: updated.emergencyContact || false,
+          });
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (session?.id) {
@@ -214,6 +235,18 @@ const Donate = () => {
                   <p>{tx.hospitalId?.email || 'On file'}</p>
                   <p className="hint">{new Date(tx.createdAt).toLocaleDateString()}</p>
                 </div>
+                <button className="btn btn--ghost" style={{ color: '#dc2626', borderColor: '#fca5a5', padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={async () => {
+                  if (!window.confirm('Reject this blood donation request? You will be made available again.')) return;
+                  try {
+                    await rejectTransfer(tx._id);
+                    const updated = await fetchTransfers(session.id);
+                    setTransfers(updated);
+                  } catch (err) {
+                    console.error('Failed to reject transfer:', err);
+                  }
+                }}>
+                  Reject
+                </button>
               </div>
             ))}
             {!transfers.filter(tx => tx.status === 'In Progress').length && <p className="hint">No hospitals have requested your blood yet.</p>}

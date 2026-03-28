@@ -225,3 +225,11 @@ export const completeTransfer = async (transferId) => {
   if (!res.ok) throw new Error('Failed to complete transfer');
   return res.json();
 };
+
+export const rejectTransfer = async (transferId) => {
+  const res = await fetch(`${API_BASE}/transfers/${transferId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to reject transfer');
+  return res.json();
+};

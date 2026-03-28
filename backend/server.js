@@ -137,6 +137,32 @@ const buildEmergencyEmail = ({ donor, request }) => {
 };
 
 // Routes
+app.get('/api/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        organization: user.organization,
+        hospitalAccess: user.hospitalAccess,
+        bloodGroup: user.bloodGroup,
+        gender: user.gender,
+        birthdate: user.birthdate,
+        city: user.city,
+        location: user.location,
+        isReadyToDonate: user.isReadyToDonate,
+        emergencyContact: user.emergencyContact,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching user' });
+  }
+});
+
 app.post('/api/signup', async (req, res) => {
   try {
     const { name, email, password, role, organization, bloodGroup, gender, birthdate, city, location } = req.body;
@@ -509,6 +535,22 @@ app.patch('/api/transfers/:id/complete', async (req, res) => {
   } catch (err) {
     console.error('Complete transfer error:', err);
     res.status(500).json({ message: 'Error completing transfer' });
+  }
+});
+
+app.delete('/api/transfers/:id', async (req, res) => {
+  try {
+    const transfer = await BloodTransfer.findById(req.params.id);
+    if (!transfer) {
+      return res.status(404).json({ message: 'Transfer not found.' });
+    }
+    // Restore donor availability
+    await User.findByIdAndUpdate(transfer.donorId, { isReadyToDonate: true });
+    await BloodTransfer.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Transfer rejected and removed.' });
+  } catch (err) {
+    console.error('Reject transfer error:', err);
+    res.status(500).json({ message: 'Error rejecting transfer' });
   }
 });
 
