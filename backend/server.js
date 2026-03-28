@@ -262,7 +262,8 @@ app.get('/api/state', async (req, res) => {
       .limit(50)
       .lean();
     const activeTransfers = await BloodTransfer.countDocuments({ status: 'In Progress' });
-    res.json({ inventory, requests, hospitals: [], activeTransfers });
+    const hospitalCount = await User.countDocuments({ role: 'Hospital' });
+    res.json({ inventory, requests, hospitals: [], activeTransfers, hospitalCount });
   } catch (err) {
     console.error('State error:', err);
     res.status(500).json({ message: 'Database connection error' });
